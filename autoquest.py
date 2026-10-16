@@ -650,6 +650,10 @@ intents = discord.Intents.default()
 intents.message_content = True
 bot = commands.Bot(command_prefix="!", intents=intents, max_messages=40)
 
+# estado global: 1 execução por pessoa + teto de quests simultâneas no processo
+RUNNING_USERS = set()
+RUN_SEM = asyncio.Semaphore(max(1, int(os.environ.get("MAX_CONCURRENT_QUESTS", "4"))))
+
 # ─── layouts ──────────────────────────────────────────────────────────────────
 class PanelLayoutView(discord.ui.LayoutView):
     def __init__(self):
@@ -826,8 +830,19 @@ class ExecuteView(View):
             await interaction.response.send_message("❌ Não é sua sessão.", ephemeral=True)
             return
         await interaction.response.defer(ephemeral=True)
-        api = QuestAPI(am.token(self._user_id))
-        status_msg = await interaction.followup.send("⏳ Iniciando...", ephemeral=True)
+        if self._user_id in RUNNING_USERS:
+            await interaction.followup.send(
+                "⏳ Sua conta já tem uma execução em andamento. Espere ela terminar.",
+                ephemeral=True,
+            )
+            return
+        RUNNING_USERS.add(self._user_id)
+        try:
+            api = QuestAPI(am.token(self._user_id))
+            status_msg = await interaction.followup.send("⏳ Iniciando...", ephemeral=True)
+        except Exception:
+            RUNNING_USERS.discard(self._user_id)
+            raise
         try:
             dm_channel = None
             try:
@@ -894,7 +909,8 @@ class ExecuteView(View):
                                 except Exception:
                                     pass
                             await asyncio.sleep(3)
-                        done = await api.do_quest(quest, on_prog)
+                        async with RUN_SEM:
+                            done = await api.do_quest(quest, on_prog)
                         if done:
                             break
                         last_err = "progresso incompleto"
@@ -965,6 +981,7 @@ class ExecuteView(View):
             except Exception:
                 pass
         finally:
+            RUNNING_USERS.discard(self._user_id)
             api.close()
 
 # ─── panel refresh ────────────────────────────────────────────────────────────
