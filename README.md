@@ -1,5 +1,6 @@
-# Discord Auto Quest — Made by th.ragg on Discord
-# discord.gg/7FCbjDMKUH
+# 🎯 Discord Auto Quest
+
+Feito por **Ryanab** e **DeepSeek V4.1 Flash**
 
 Bot open source para automatizar missões (quests) do Discord.
 

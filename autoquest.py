@@ -1,5 +1,5 @@
-# autoquest.py — Discord Auto Quest (open source) by @th.ragg on Discord
-# discord.gg/7FCbjDMKUH
+# autoquest.py — Discord Auto Quest (open source)
+# Feito por Ryanab e DeepSeek V4.1 Flash
 
 import asyncio
 import base64
